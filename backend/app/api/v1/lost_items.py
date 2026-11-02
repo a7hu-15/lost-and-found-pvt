@@ -14,7 +14,7 @@ from app.models.match import MatchScore
 from app.models.audit import AuditLog
 from app.schemas.lost_item import LostItemCreate, LostItemOut
 from app.matching.engine import calculate_item_similarity
-from app.notifications.service import send_verification_email
+from app.notifications.service import send_verification_email, send_report_confirmation_email
 from app.services.image_service import process_and_store_image
 from app.services.moderation.text_moderator import get_text_moderator
 from app.models.verification import VerificationToken, ReportType
@@ -153,7 +153,16 @@ async def create_lost_item(
     await db.commit()
     await db.refresh(lost_item)
     
-    # Verification email sent in background to prevent timeout
+    # Confirmation email with private tracking link sent in background
+    background_tasks.add_task(
+        send_report_confirmation_email,
+        email=lost_item.email,
+        report_id=lost_item.report_id,
+        access_token=lost_item.access_token,
+        item_title=lost_item.item_name
+    )
+    
+    # Verification email token record maintained for auditing
     background_tasks.add_task(
         send_verification_email,
         email=lost_item.email,

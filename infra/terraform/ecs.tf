@@ -77,8 +77,28 @@ resource "aws_ecs_task_definition" "backend" {
           value = aws_s3_bucket.uploads.bucket
         },
         {
+          name  = "SMTP_HOST"
+          value = "smtp.gmail.com"
+        },
+        {
+          name  = "SMTP_PORT"
+          value = "587"
+        },
+        {
+          name  = "SMTP_USER"
+          value = var.smtp_user
+        },
+        {
+          name  = "SMTP_PASSWORD"
+          value = var.smtp_password
+        },
+        {
+          name  = "SMTP_FROM"
+          value = "ReFynd <${var.smtp_user}>"
+        },
+        {
           name  = "MOCK_SMTP"
-          value = "True"
+          value = var.smtp_password != "" ? "False" : "True"
         },
         {
           name  = "AWS_CLOUDFRONT_DOMAIN"

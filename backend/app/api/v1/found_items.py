@@ -12,7 +12,7 @@ from app.models.lost_item import LostItem, ItemStatus, generate_report_id, gener
 from app.models.match import MatchScore
 from app.models.audit import AuditLog
 from app.schemas.found_item import FoundItemCreate, FoundItemOut
-from app.notifications.service import send_verification_email
+from app.notifications.service import send_verification_email, send_report_confirmation_email
 from app.services.image_service import process_and_store_image
 from app.services.moderation.text_moderator import get_text_moderator
 from app.models.verification import VerificationToken, ReportType
@@ -163,7 +163,16 @@ async def create_found_item(
     await db.commit()
     await db.refresh(found_item)
     
-    # Verification email sent in background to prevent timeout
+    # Confirmation email with private tracking link sent in background
+    background_tasks.add_task(
+        send_report_confirmation_email,
+        email=found_item.email,
+        report_id=found_item.report_id,
+        access_token=found_item.access_token,
+        item_title=found_item.item_name
+    )
+    
+    # Verification email token record maintained for auditing
     background_tasks.add_task(
         send_verification_email,
         email=found_item.email,

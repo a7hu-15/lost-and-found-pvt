@@ -108,3 +108,32 @@ async def test_create_lost_item_rejects_fake_domain():
         response = await ac.post("/api/v1/lost/create", data=form_data)
         assert response.status_code == 400
         assert "undeliverable" in response.text or "does not exist" in response.text
+
+@pytest.mark.asyncio
+async def test_create_lost_item_dispatches_confirmation_email(monkeypatch):
+    from unittest.mock import MagicMock
+    mock_send = MagicMock()
+    monkeypatch.setattr("app.api.v1.lost_items.send_report_confirmation_email", mock_send)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        form_data = {
+            "item_name": "Silver Ring",
+            "location": "Library 2nd Floor",
+            "lost_date": "2026-11-01",
+            "description": "Lost my silver ring near the reference section.",
+            "email": "ashu.student@gmail.com"
+        }
+        response = await ac.post("/api/v1/lost/create", data=form_data)
+        assert response.status_code == 201
+        data = response.json()
+        assert "report_id" in data
+        assert data["report_id"].startswith("LF-")
+
+        # Verify confirmation email was queued with tracking link parameters
+        mock_send.assert_called_once()
+        args, kwargs = mock_send.call_args
+        assert kwargs["email"] == "ashu.student@gmail.com"
+        assert kwargs["report_id"] == data["report_id"]
+        assert kwargs["item_title"] == "Silver Ring"
+

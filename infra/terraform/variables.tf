@@ -61,3 +61,16 @@ variable "backend_image" {
   default     = ""
 }
 
+variable "smtp_user" {
+  description = "SMTP username for email dispatch (e.g. cloudlostfound.platform@gmail.com)."
+  type        = string
+  default     = "cloudlostfound.platform@gmail.com"
+}
+
+variable "smtp_password" {
+  description = "Google App Password (16 characters) for SMTP dispatch."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
