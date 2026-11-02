@@ -97,6 +97,10 @@ resource "aws_ecs_task_definition" "backend" {
           value = "ReFynd <${var.smtp_user}>"
         },
         {
+          name  = "SUPPORT_EMAIL"
+          value = var.smtp_user
+        },
+        {
           name  = "MOCK_SMTP"
           value = var.smtp_password != "" ? "False" : "True"
         },

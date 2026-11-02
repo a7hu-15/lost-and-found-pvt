@@ -37,7 +37,11 @@ def test_disposable_email_rejected():
 # --- Support Ticket API Tests ---
 
 @pytest.mark.asyncio
-async def test_submit_valid_support_ticket():
+async def test_submit_valid_support_ticket(monkeypatch):
+    from unittest.mock import MagicMock
+    mock_send = MagicMock()
+    monkeypatch.setattr("app.api.v1.support.send_email", mock_send)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         payload = {
@@ -52,6 +56,11 @@ async def test_submit_valid_support_ticket():
         assert "ticket_id" in data
         assert data["ticket_id"].startswith("SUP-")
         assert data["message"] == "Support ticket submitted successfully."
+
+        # Verify support email was dispatched to cloudlostfound.platform@gmail.com
+        called_recipients = [call_args.kwargs.get("to_email") for call_args in mock_send.call_args_list]
+        assert "cloudlostfound.platform@gmail.com" in called_recipients
+        assert "jane.student@gmail.com" in called_recipients
 
 @pytest.mark.asyncio
 async def test_submit_support_ticket_invalid_email():
