@@ -3,6 +3,16 @@ output "website_url" {
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }
 
+output "https_website_url" {
+  description = "The primary secure HTTPS entrypoint for ReFynd."
+  value       = "https://${aws_cloudfront_distribution.main.domain_name}"
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name."
+  value       = aws_cloudfront_distribution.main.domain_name
+}
+
 output "api_url" {
   description = "The Application Load Balancer HTTP endpoint for the FastAPI backend."
   value       = "http://${aws_lb.main.dns_name}"

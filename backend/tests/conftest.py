@@ -17,3 +17,4 @@ def initialize_test_database():
     loop.run_until_complete(_create_tables())
     yield
     loop.close()
+

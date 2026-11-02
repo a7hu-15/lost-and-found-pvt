@@ -81,12 +81,16 @@ resource "aws_ecs_task_definition" "backend" {
           value = "True"
         },
         {
+          name  = "AWS_CLOUDFRONT_DOMAIN"
+          value = aws_cloudfront_distribution.main.domain_name
+        },
+        {
           name  = "FRONTEND_URL"
-          value = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+          value = "https://${aws_cloudfront_distribution.main.domain_name}"
         },
         {
           name  = "BACKEND_CORS_ORIGINS"
-          value = jsonencode(["http://localhost:3000", "http://localhost:5173", "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"])
+          value = jsonencode(["http://localhost:3000", "http://localhost:5173", "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}", "https://${aws_cloudfront_distribution.main.domain_name}"])
         }
       ]
 

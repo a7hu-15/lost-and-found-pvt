@@ -22,6 +22,7 @@ from app.matching.engine import calculate_item_similarity
 import re
 
 from app.core.rate_limit import limiter, LIMIT_CREATE
+from app.core.validators import validate_realistic_email
 from fastapi import Request
 
 router = APIRouter()
@@ -53,6 +54,10 @@ async def create_found_item(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Storage location must not exceed 200 characters.")
     if len(email.strip()) > 254:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email address must not exceed 254 characters.")
+    try:
+        email = validate_realistic_email(email)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if brand and len(brand.strip()) > 50:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Brand must not exceed 50 characters.")
     if color and len(color.strip()) > 50:

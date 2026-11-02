@@ -24,6 +24,7 @@ import re
 from datetime import date as date_cls
 
 from app.core.rate_limit import limiter, LIMIT_CREATE
+from app.core.validators import validate_realistic_email
 router = APIRouter()
 
 @router.post("/create", response_model=LostItemOut, status_code=status.HTTP_201_CREATED)
@@ -51,6 +52,10 @@ async def create_lost_item(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Description exceeds the maximum limit of 100 words.")
     if len(email.strip()) > 254:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email address must not exceed 254 characters.")
+    try:
+        email = validate_realistic_email(email)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if brand and len(brand.strip()) > 50:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Brand must not exceed 50 characters.")
     if color and len(color.strip()) > 50:

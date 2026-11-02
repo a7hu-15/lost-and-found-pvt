@@ -42,3 +42,4 @@ def validate_realistic_email(email_input: str) -> str:
 
     except EmailNotValidError as e:
         raise ValueError(f"Email address or domain is invalid/undeliverable: {str(e)}")
+

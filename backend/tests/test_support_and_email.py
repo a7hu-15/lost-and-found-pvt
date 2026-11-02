@@ -77,3 +77,34 @@ async def test_submit_support_ticket_missing_fields():
         }
         response = await ac.post("/api/v1/support", json=payload)
         assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_lost_item_rejects_gibberish_email():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        form_data = {
+            "item_name": "Lost Keys",
+            "location": "Main Auditorium",
+            "lost_date": "2026-11-01",
+            "description": "Lost my keyring with 3 keys on Sunday morning in the auditorium.",
+            "email": "asdfaalsdfhajshdfklahjalkshdfklhadfhcjhdf2138646192364912639746asdgfgwq@gmail.com"
+        }
+        response = await ac.post("/api/v1/lost/create", data=form_data)
+        assert response.status_code == 400
+        assert "Gmail" in response.text or "too long" in response.text
+
+@pytest.mark.asyncio
+async def test_create_lost_item_rejects_fake_domain():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        form_data = {
+            "item_name": "Lost Keys",
+            "location": "Main Auditorium",
+            "lost_date": "2026-11-01",
+            "description": "Lost my keyring with 3 keys on Sunday morning in the auditorium.",
+            "email": "student@nonexistentfakedomain12398472.xyz"
+        }
+        response = await ac.post("/api/v1/lost/create", data=form_data)
+        assert response.status_code == 400
+        assert "undeliverable" in response.text or "does not exist" in response.text
