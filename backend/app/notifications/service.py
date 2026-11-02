@@ -25,15 +25,15 @@ def send_email(to_email: str, subject: str, body_text: str, body_html: str = Non
         caller_func = "unknown"
         caller_file = "unknown"
 
-    logger.info(f"========== EMAIL DISPATCH ==========")
-    logger.info(f"TYPE: {subject}")
-    logger.info(f"CALLER: {caller_file} -> {caller_func}()")
-    logger.info(f"TO: {to_email}")
-    logger.info(f"BODY:\n{body_text}")
-    logger.info(f"=====================================")
+    print(f"========== EMAIL DISPATCH ==========", flush=True)
+    print(f"TYPE: {subject}", flush=True)
+    print(f"CALLER: {caller_file} -> {caller_func}()", flush=True)
+    print(f"TO: {to_email}", flush=True)
+    print(f"BODY:\n{body_text}", flush=True)
+    print(f"=====================================", flush=True)
 
     if getattr(settings, "MOCK_SMTP", False):
-        logger.info(f"MOCK SMTP ENABLED: Bypassed physical email dispatch to {to_email}")
+        print(f"MOCK SMTP ENABLED: Bypassed physical email dispatch to {to_email}", flush=True)
         return
 
     try:
@@ -52,9 +52,9 @@ def send_email(to_email: str, subject: str, body_text: str, body_html: str = Non
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
         
-        logger.info(f"Email sent successfully via SMTP to {to_email}")
+        print(f"Email sent successfully via SMTP to {to_email}", flush=True)
     except Exception as e:
-        logger.error(f"Failed to send email via SMTP to {to_email}: {str(e)}")
+        print(f"Failed to send email via SMTP to {to_email}: {str(e)}", flush=True)
 
 
 def send_report_confirmation_email(email: str, report_id: str, access_token: str, item_title: str):
