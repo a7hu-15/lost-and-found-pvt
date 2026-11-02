@@ -245,6 +245,7 @@ export const ReportFound: React.FC = () => {
             </div>
 
             <ImageUploader
+              isRequired={true}
               onImageChange={setUploadedFile}
               onAIDetect={handleAIDetected}
             />

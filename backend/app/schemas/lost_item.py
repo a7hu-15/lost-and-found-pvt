@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime, date
 from app.models.lost_item import ItemStatus
+from app.core.validators import validate_realistic_email
 
 def validate_indian_mobile(v: Optional[str]) -> Optional[str]:
     if not v or not v.strip():
@@ -63,10 +64,10 @@ class LostItemCreate(BaseModel):
 
     @field_validator('email')
     @classmethod
-    def validate_email_len(cls, v: EmailStr) -> EmailStr:
+    def validate_email_len(cls, v: EmailStr) -> str:
         if len(str(v)) > 254:
             raise ValueError("Email address must not exceed 254 characters.")
-        return v
+        return validate_realistic_email(v)
 
     @field_validator('description')
     @classmethod

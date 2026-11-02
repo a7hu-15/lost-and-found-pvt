@@ -158,3 +158,4 @@ terraform destroy -auto-approve
 ```
 
 All 25 AWS components (RDS, ECS, ALB, S3 buckets, Security Groups, VPC) will be cleanly terminated.
+

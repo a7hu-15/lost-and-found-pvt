@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, date
 from app.models.lost_item import ItemStatus
 from app.schemas.lost_item import validate_indian_mobile, validate_description_words
+from app.core.validators import validate_realistic_email
 
 class FoundItemCreate(BaseModel):
     item_name: str
@@ -39,10 +40,10 @@ class FoundItemCreate(BaseModel):
 
     @field_validator('email')
     @classmethod
-    def validate_email_len(cls, v: EmailStr) -> EmailStr:
+    def validate_email_len(cls, v: EmailStr) -> str:
         if len(str(v)) > 254:
             raise ValueError("Email address must not exceed 254 characters.")
-        return v
+        return validate_realistic_email(v)
 
     @field_validator('description')
     @classmethod

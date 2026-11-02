@@ -1,13 +1,19 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.support_ticket import TicketStatus
+from app.core.validators import validate_realistic_email
 
 class SupportTicketCreate(BaseModel):
     name: str
     email: EmailStr
     subject: str
     message: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email_real(cls, v: EmailStr) -> str:
+        return validate_realistic_email(v)
 
 class SupportTicketStatusUpdate(BaseModel):
     status: TicketStatus
