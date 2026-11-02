@@ -1,4 +1,4 @@
-name: Continuous Integration (CI)
+name: CI/CD Pipeline
 
 on:
   push:
@@ -85,3 +85,79 @@ jobs:
           push: false
           tags: lostfound-frontend:test
 
+  deploy-to-aws:
+    name: Continuous Deployment to AWS
+    needs: [backend-tests, frontend-build, docker-build-verification]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (ARM64 emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
+        id: aws-creds
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Check AWS Secrets Configured
+        id: check-secrets
+        run: |
+          if [ "${{ steps.aws-creds.outcome }}" == "success" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning ::AWS Secrets (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) not found. Skipping auto-deploy step."
+          fi
+
+      - name: Login to Amazon ECR
+        if: steps.check-secrets.outputs.configured == 'true'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Backend Image to ECR
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/refynd-backend:latest
+            ${{ steps.login-ecr.outputs.registry }}/refynd-backend:${{ github.sha }}
+
+      - name: Trigger ECS Rolling Deployment
+        if: steps.check-secrets.outputs.configured == 'true'
+        run: |
+          aws ecs update-service --cluster refynd-prod-cluster --service refynd-prod-service --force-new-deployment --region us-east-1
+
+      - name: Set up Node.js 20
+        if: steps.check-secrets.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Frontend for Production
+        if: steps.check-secrets.outputs.configured == 'true'
+        working-directory: ./frontend
+        env:
+          VITE_API_BASE_URL: http://refynd-prod-alb-1704449525.us-east-1.elb.amazonaws.com
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy Frontend to Amazon S3
+        if: steps.check-secrets.outputs.configured == 'true'
+        run: |
+          aws s3 sync frontend/dist s3://refynd-frontend-prod-a91aeec0 --delete --region us-east-1
