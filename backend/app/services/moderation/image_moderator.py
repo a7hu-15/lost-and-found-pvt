@@ -125,3 +125,4 @@ class AmazonRekognitionModerator:
 
 def get_image_moderator() -> AmazonRekognitionModerator:
     return AmazonRekognitionModerator()
+

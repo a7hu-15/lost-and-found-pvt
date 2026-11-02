@@ -144,3 +144,4 @@ async def test_process_and_store_image_fail_closed_on_error():
             await process_and_store_image(upload)
         assert exc_info.value.status_code == 503
         assert "Image moderation service is currently unavailable" in exc_info.value.detail
+
