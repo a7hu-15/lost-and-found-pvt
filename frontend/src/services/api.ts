@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+const baseURL = rawBaseUrl.endsWith('/api/v1')
+  ? rawBaseUrl
+  : rawBaseUrl
+  ? `${rawBaseUrl.replace(/\/+$/, '')}/api/v1`
+  : '/api/v1';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL,
 });
 
 api.interceptors.request.use(
