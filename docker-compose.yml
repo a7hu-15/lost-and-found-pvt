@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: refynd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: refynd
+      POSTGRES_PASSWORD: refynd_dev_password
+      POSTGRES_DB: lost_found
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U refynd -d lost_found"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - refynd-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: refynd-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://refynd:refynd_dev_password@db:5432/lost_found
+      SECRET_KEY: refynd-super-secret-local-docker-key-123456789
+      MOCK_SMTP: "True"
+      USE_CLOUD_STORAGE: "False"
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - refynd-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: refynd-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - refynd-net
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  refynd-net:
+    driver: bridge
