@@ -22,7 +22,7 @@ resource "aws_ecs_cluster" "main" {
   }
 }
 
-# ECS Fargate Task Definition (Cost-optimized: 0.25 vCPU, 0.5 GB RAM)
+# ECS Fargate Task Definition (Cost-optimized: 0.25 vCPU, 0.5 GB RAM, ARM64 Graviton)
 resource "aws_ecs_task_definition" "backend" {
   family                   = "${var.app_name}-${var.environment}-backend"
   network_mode             = "awsvpc"
@@ -31,6 +31,11 @@ resource "aws_ecs_task_definition" "backend" {
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
 
   container_definitions = jsonencode([
     {
