@@ -74,15 +74,20 @@ async def process_and_store_image(file: UploadFile):
         thumb_img.save(thumb_buffer, "WEBP", quality=75, optimize=True)
         thumb_bytes = thumb_buffer.getvalue()
 
+        # 3. Rekognition Buffer: Amazon Rekognition strictly accepts JPEG or PNG format
+        rekognition_buffer = io.BytesIO()
+        main_img.save(rekognition_buffer, "JPEG", quality=85)
+        rekognition_bytes = rekognition_buffer.getvalue()
+
     except Exception as e:
         logger.error(f"Failed to process and transcode image: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
-    # 3. Content Moderation: Amazon Rekognition DetectModerationLabels
+    # 4. Content Moderation: Amazon Rekognition DetectModerationLabels
     # Inspects image bytes before storing or associating with any public listing
     from app.services.moderation.image_moderator import get_image_moderator
     moderator = get_image_moderator()
-    mod_result = await moderator.moderate_image(main_bytes)
+    mod_result = await moderator.moderate_image(rekognition_bytes)
 
     if mod_result.status == "ERROR":
         # Fail closed: Do not publish or persist image if moderation service fails

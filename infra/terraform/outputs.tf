@@ -1,6 +1,11 @@
-output "cloudfront_url" {
-  description = "The global HTTPS CloudFront URL for the ReFynd platform."
-  value       = "https://${aws_cloudfront_distribution.main.domain_name}"
+output "website_url" {
+  description = "The S3 Static Website URL for the ReFynd frontend application."
+  value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+}
+
+output "api_url" {
+  description = "The Application Load Balancer HTTP endpoint for the FastAPI backend."
+  value       = "http://${aws_lb.main.dns_name}"
 }
 
 output "alb_dns_name" {
@@ -38,4 +43,3 @@ output "ecs_service_name" {
   description = "The ECS Service name."
   value       = aws_ecs_service.backend.name
 }
-

@@ -77,16 +77,16 @@ resource "aws_ecs_task_definition" "backend" {
           value = aws_s3_bucket.uploads.bucket
         },
         {
-          name  = "AWS_CLOUDFRONT_DOMAIN"
-          value = aws_cloudfront_distribution.main.domain_name
-        },
-        {
           name  = "MOCK_SMTP"
           value = "True"
         },
         {
           name  = "FRONTEND_URL"
-          value = "https://${aws_cloudfront_distribution.main.domain_name}"
+          value = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+        },
+        {
+          name  = "BACKEND_CORS_ORIGINS"
+          value = jsonencode(["http://localhost:3000", "http://localhost:5173", "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"])
         }
       ]
 
@@ -108,11 +108,12 @@ resource "aws_ecs_task_definition" "backend" {
 
 # ECS Fargate Service
 resource "aws_ecs_service" "backend" {
-  name            = "${var.app_name}-${var.environment}-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                          = "${var.app_name}-${var.environment}-service"
+  cluster                       = aws_ecs_cluster.main.id
+  task_definition              = aws_ecs_task_definition.backend.arn
+  desired_count                 = 1
+  launch_type                   = "FARGATE"
+  health_check_grace_period_seconds = 60
 
   network_configuration {
     subnets          = [aws_subnet.public_1.id, aws_subnet.public_2.id]
