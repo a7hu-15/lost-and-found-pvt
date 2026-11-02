@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+backend/venv/
+backend/env/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+*.egg-info/
+
+# Databases & Local Uploads
+*.db
+*.sqlite
+*.sqlite3
+backend/lost_found.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Environment & Secrets
+.env
+.env.local
+.env.development
+.env.production
+.env.vercel
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Python virtual environment (root level)
+.venv/
+
+# Database backups (contain live data)
+backups/
+
+# Uploaded user files (Docker volume — ephemeral)
+uploads/
+
+# SSL Certificates & Private Keys (NEVER commit)
+infra/nginx/ssl/*.pem
+infra/nginx/ssl/*.key
+infra/nginx/ssl/*.crt
+
+# Example environment file (safe to commit, but no secrets inside)
+# .env.production.example is intentionally kept for documentation
+infra/kubernetes/tls-secret.yaml
+infra/kubernetes/secret.yaml
+test_report_id.txt
+
+# Playwright & QA test artifacts
+dummy.png
+*.png
+!frontend/public/brand/*.png
+!frontend/public/favicon.png
+frontend/reports/
+frontend/test-results/
+
+# Terraform local cache and state files (NEVER commit secrets or state)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+

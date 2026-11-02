@@ -1,0 +1,336 @@
+import logging
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
+import inspect
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+def send_email(to_email: str, subject: str, body_text: str, body_html: str = None):
+    """
+    Sends email via SMTP if configured, or logs in development console.
+    """
+    if not to_email:
+        return
+
+    # INSTRUMENTATION: Identify exact caller
+    try:
+        stack = inspect.stack()
+        # stack[0] is this function, stack[1] is the caller
+        caller_func = stack[1].function
+        caller_file = stack[1].filename.split('/')[-1]
+    except Exception:
+        caller_func = "unknown"
+        caller_file = "unknown"
+
+    logger.info(f"========== EMAIL DISPATCH ==========")
+    logger.info(f"TYPE: {subject}")
+    logger.info(f"CALLER: {caller_file} -> {caller_func}()")
+    logger.info(f"TO: {to_email}")
+    logger.info(f"BODY:\n{body_text}")
+    logger.info(f"=====================================")
+
+    if getattr(settings, "MOCK_SMTP", False):
+        logger.info(f"MOCK SMTP ENABLED: Bypassed physical email dispatch to {to_email}")
+        return
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.SMTP_FROM
+        msg["To"] = to_email
+
+        if body_text:
+            msg.attach(MIMEText(body_text, "plain"))
+        if body_html:
+            msg.attach(MIMEText(body_html, "html"))
+
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+        
+        logger.info(f"Email sent successfully via SMTP to {to_email}")
+    except Exception as e:
+        logger.error(f"Failed to send email via SMTP to {to_email}: {str(e)}")
+
+
+def send_report_confirmation_email(email: str, report_id: str, access_token: str, item_title: str):
+    front_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+    tracking_url = f"{front_url}/track?report_id={report_id}&token={access_token}"
+    subject = f"Lost & Found • Your Report Has Been Submitted ({report_id})"
+    
+    text_content = f"""Hello,
+
+Your Lost & Found report has been successfully submitted.
+
+Report ID: {report_id}
+Item: {item_title}
+
+Thank you for using ReFynd.
+Track Your Report Online:
+{tracking_url}
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body>
+        <h2>Report Submitted Successfully</h2>
+        <p>Your Lost & Found report has been successfully submitted.</p>
+        <ul>
+            <li><strong>Report ID:</strong> {report_id}</li>
+            <li><strong>Item:</strong> {item_title}</li>
+        </ul>
+        <a href="{tracking_url}">Track Your Report</a>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+
+def send_verification_email(email: str, token: str, report_id: str):
+    front_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+    verification_url = f"{front_url}/verify-email?token={token}"
+    subject = "Lost & Found • Verify Your Email"
+    
+    text_content = f"""Hello,
+
+Please verify your email address to complete the submission of your report ({report_id}).
+
+Verify here:
+{verification_url}
+
+If you did not request this, please ignore this email.
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body>
+        <h2>Verify Your Email</h2>
+        <p>Please verify your email address to complete your Lost & Found report ({report_id}).</p>
+        <a href="{verification_url}">Verify Email Address</a>
+        <p>If you did not request this, please ignore this email.</p>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+def send_report_approved_email(email: str, report_id: str, item_title: str):
+    subject = f"Lost & Found • Your Report Has Been Approved ({report_id})"
+    
+    text_content = f"""Hello,
+
+Your Lost & Found report has been approved and is now visible on the platform.
+
+Report ID: {report_id}
+Item: {item_title}
+
+Thank you for using ReFynd.
+"""
+    send_email(email, subject, text_content)
+
+def send_report_rejected_email(email: str, report_id: str, item_title: str):
+    subject = f"Lost & Found • Your Report Has Been Rejected ({report_id})"
+    
+    text_content = f"""Hello,
+
+Your Lost & Found report could not be approved and has been removed from the platform.
+
+Report ID: {report_id}
+Item: {item_title}
+
+If you believe this is a mistake, please contact campus security.
+"""
+    send_email(email, subject, text_content)
+
+
+def send_claim_approved_email(email: str, report_id: str, storage_location: str):
+    subject = f"Item Ready for Collection ({report_id}) • Campus Security"
+    
+    text_content = f"""Your Claim Has Been Approved!
+
+Your ownership verification for report {report_id} has been approved by Security Staff.
+
+Please collect your physical item from:
+{storage_location}
+
+IMPORTANT: Please bring your valid Student ID card when collecting your item.
+
+Campus Security Office
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; }}
+        .container {{ max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; padding: 32px; }}
+        .header {{ font-size: 18px; font-weight: 700; color: #09090b; margin-bottom: 4px; }}
+        .success-box {{ background-color: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 16px; border-radius: 6px; margin: 20px 0; font-family: monospace; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">Item Ready for Pickup</div>
+        <div style="font-size: 13px; color: #71717a;">Your ownership verification for report {report_id} was approved by Security Staff.</div>
+
+        <div class="success-box">
+          <div style="font-size: 11px; text-transform: uppercase;">Holding Storage Location</div>
+          <div style="font-size: 16px; font-weight: bold; margin-top: 2px;">{storage_location}</div>
+          <div style="font-size: 12px; margin-top: 8px; font-family: sans-serif;">Please bring your valid Student ID card when collecting your item.</div>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+
+def send_staff_invitation_email(email: str, full_name: str, invite_token: str):
+    invite_url = f"http://localhost:5173/admin/accept-invite?token={invite_token}"
+    subject = "Campus Security Staff Access Invitation"
+
+    text_content = f"""Hello {full_name},
+
+You have been invited by the Platform Owner to join the Campus Lost & Found Administrative Staff.
+
+Complete your account setup and create your password here:
+{invite_url}
+
+NOTE: This invitation link is single-use and expires in 3 days.
+
+Campus Administration Team
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; }}
+        .container {{ max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; padding: 32px; }}
+        .header {{ font-size: 18px; font-weight: 700; color: #09090b; margin-bottom: 4px; }}
+        .btn {{ background-color: #ff7a00; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">Administrative Staff Invitation</div>
+        <p style="font-size: 13px; color: #71717a;">Hello {full_name}, you have been invited to join the staff console.</p>
+        <div style="margin: 24px 0;">
+          <a href="{invite_url}" class="btn">Set Up Password &amp; Activate Staff Account &rarr;</a>
+        </div>
+        <p style="font-size: 11px; color: #a1a1aa;">This single-use link expires in 3 days. Never share this link.</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+
+def send_password_reset_email(email: str, reset_token: str):
+    reset_url = f"http://localhost:5173/admin/reset-password?token={reset_token}"
+    subject = "Password Reset Request • Campus Lost & Found Console"
+
+    text_content = f"""Hello,
+
+We received a request to reset the password for your account ({email}).
+
+Reset your password using this secure single-use link:
+{reset_url}
+
+If you did not request a password reset, please ignore this email or contact the Platform Owner. This link expires in 2 hours.
+
+Campus Administration Security
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; }}
+        .container {{ max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; padding: 32px; }}
+        .header {{ font-size: 18px; font-weight: 700; color: #09090b; margin-bottom: 4px; }}
+        .btn {{ background-color: #2563eb; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">Password Reset Request</div>
+        <p style="font-size: 13px; color: #71717a;">A password reset was requested for <strong>{email}</strong>.</p>
+        <div style="margin: 24px 0;">
+          <a href="{reset_url}" class="btn">Reset Password Now &rarr;</a>
+        </div>
+        <p style="font-size: 11px; color: #a1a1aa;">This single-use link expires in 2 hours. If you did not make this request, your account remains secure.</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+
+
+
+def send_information_approved_owner_email(email: str, message: str, report_id: str):
+    tracking_url = f"http://localhost:5173/track"
+    subject = f"Someone Submitted Information About Your Lost Item ({report_id})"
+    
+    text_content = f"""Someone Submitted Information About Your Lost Item
+
+Someone has provided information regarding your lost item report ({report_id}).
+
+Message:
+{message}
+
+Please check your report/tracking page for further details:
+{tracking_url}
+
+Campus Security & Lost & Found Team
+"""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{ font-family: sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; }}
+        .container {{ max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px; padding: 32px; }}
+        .header {{ font-size: 18px; font-weight: bold; margin-bottom: 16px; }}
+        .message-box {{ font-size: 14px; line-height: 1.6; padding: 16px; border-left: 4px solid #10b981; background: #ecfdf5; margin-bottom: 16px; white-space: pre-wrap; }}
+        .btn {{ background-color: #2563eb; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block; }}
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">Information About Your Lost Item</div>
+        <p style="font-size: 14px; color: #3f3f46;">Someone has provided information regarding your lost item report <strong>{report_id}</strong>.</p>
+        <div class="message-box">{message}</div>
+        <div style="margin: 24px 0;">
+          <a href="{tracking_url}" class="btn">Track My Report &rarr;</a>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    send_email(email, subject, text_content, html_content)
+
+def send_pending_information_notification(email: str, report_id: str, info_id: str):
+    subject = f"New Information Submitted ({report_id})"
+    text_content = f"New information was submitted for report {report_id}. Please review it in the admin dashboard. Info ID: {info_id}"
+    send_email(email, subject, text_content)

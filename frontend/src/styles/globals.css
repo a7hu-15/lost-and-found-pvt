@@ -1,0 +1,315 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default Dark Mode CSS Variables */
+  --bg-color: #0B0B0F;
+  --surface-color: #151518;
+  --border-color: #27272A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --brand-accent: #FF8A00;
+  --input-bg: #09090B;
+
+  /* Admin Dark Mode System Tokens */
+  --admin-bg: #090909;
+  --admin-surface: #141414;
+  --admin-surface-subtle: #1F1F1F;
+  --admin-border: #2E2E2E;
+  --admin-text-primary: #F5F5F5;
+  --admin-text-secondary: #C5C5C5;
+  --admin-text-muted: #8E8E8E;
+  --admin-accent: #D97706;
+  --admin-accent-hover: #F59E0B;
+  --admin-active-bg: #2B2315;
+  --admin-active-text: #FBBF24;
+}
+
+html.light {
+  /* Light Mode CSS Variables */
+  --bg-color: #F8F8F6;
+  --surface-color: #FFFFFF;
+  --border-color: #E4E4E7;
+  --text-primary: #18181B;
+  --text-secondary: #71717A;
+  --brand-accent: #F97316;
+  --input-bg: #F4F4F5;
+
+  /* Admin Light Mode System Tokens */
+  --admin-bg: #F8F9FA;
+  --admin-surface: #FFFFFF;
+  --admin-surface-subtle: #F1F3F5;
+  --admin-border: #DCE1E7;
+  --admin-text-primary: #111827;
+  --admin-text-secondary: #4B5563;
+  --admin-text-muted: #6B7280;
+  --admin-accent: #D97706;
+  --admin-accent-hover: #B45309;
+  --admin-active-bg: #FEF3C7;
+  --admin-active-text: #B45309;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+}
+
+/* Centralized Admin Design System Components */
+
+.admin-card {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-primary);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-button-primary,
+.admin-btn-primary {
+  background-color: var(--admin-accent) !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-button-primary:hover,
+.admin-btn-primary:hover {
+  opacity: 0.92;
+}
+
+.admin-btn-success {
+  background-color: #059669 !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-btn-success:hover {
+  opacity: 0.92;
+}
+
+.admin-btn-danger {
+  background-color: #DC2626 !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-btn-danger:hover {
+  opacity: 0.92;
+}
+
+.admin-button-secondary,
+.admin-btn-secondary {
+  background-color: var(--admin-surface-subtle) !important;
+  color: var(--admin-text-primary) !important;
+  border: 1px solid var(--admin-border) !important;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-button-secondary:hover,
+.admin-btn-secondary:hover {
+  border-color: var(--admin-accent) !important;
+}
+
+.admin-input {
+  background-color: var(--admin-surface-subtle) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 6px;
+  color: var(--admin-text-primary) !important;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: var(--admin-accent) !important;
+}
+
+/* Linear / Vercel Enterprise Public SaaS UI Components */
+
+.saas-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+html.light .saas-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.saas-card:hover {
+  border-color: #3f3f46;
+}
+html.light .saas-card:hover {
+  border-color: #a1a1aa;
+}
+
+.saas-button-primary {
+  background-color: var(--text-primary);
+  color: var(--bg-color);
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.saas-button-primary:hover {
+  opacity: 0.9;
+}
+
+.saas-button-secondary {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.saas-button-secondary:hover {
+  border-color: #3f3f46;
+}
+html.light .saas-button-secondary:hover {
+  border-color: #a1a1aa;
+  background-color: #f4f4f5;
+}
+
+.saas-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+}
+
+.saas-input {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.saas-input:focus {
+  outline: none;
+  border-color: #F97316;
+}
+
+/* Search Mode Toggle High-Contrast Classes */
+.search-toggle-active {
+  background-color: #27272A !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+}
+html.light .search-toggle-active {
+  background-color: #18181B !important;
+  color: #FFFFFF !important;
+}
+
+.search-toggle-inactive {
+  color: #A1A1AA !important;
+}
+.search-toggle-inactive:hover {
+  color: #FFFFFF !important;
+}
+html.light .search-toggle-inactive {
+  color: #52525B !important;
+}
+html.light .search-toggle-inactive:hover {
+  color: #18181B !important;
+}
+
+/* Custom Utilities for Light Mode overrides */
+html.light .bg-\[\#09090b\] {
+  background-color: #F8F8F6 !important;
+}
+
+html.light .border-\[\#27272a\],
+html.light .border-zinc-800 {
+  border-color: #E4E4E7 !important;
+}
+
+html.light .bg-zinc-900,
+html.light .bg-zinc-900\/90,
+html.light .bg-zinc-900\/80,
+html.light .bg-zinc-900\/60,
+html.light .bg-zinc-900\/50 {
+  background-color: #F4F4F5 !important;
+}
+
+html.light .text-white {
+  color: #18181B !important;
+}
+
+html.light .text-zinc-100,
+html.light .text-zinc-200 {
+  color: #18181B !important;
+}
+
+html.light .text-zinc-300,
+html.light .text-zinc-400 {
+  color: #3F3F46 !important;
+}
+
+html.light .text-zinc-500 {
+  color: #52525B !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+/* Disabled States for Buttons and Inputs (Loading/Submitting) */
+button:disabled,
+input:disabled,
+textarea:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(0.5);
+}
+
