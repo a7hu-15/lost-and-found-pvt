@@ -1,26 +1,19 @@
 import os
 import aiofiles
-import httpx
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+import asyncio
+import logging
 from abc import ABC, abstractmethod
 from typing import Tuple
+import boto3
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class StorageBackend(ABC):
     @abstractmethod
     async def delete(self, public_url: str):
         pass
 
-    @abstractmethod
-    async def delete(self, public_url: str):
-        if not public_url.startswith(self.base_url): return
-        rel_path = public_url[len(self.base_url):].lstrip("/")
-        full_path = os.path.join(self.base_dir, rel_path)
-        if os.path.exists(full_path):
-            os.remove(full_path)
-            
     @abstractmethod
     async def save(self, filepath: str, data: bytes) -> Tuple[str, bool, str]:
         """Saves data and returns (public_url, is_flagged, moderation_result)."""
@@ -33,7 +26,12 @@ class LocalStorage(StorageBackend):
         os.makedirs(self.base_dir, exist_ok=True)
 
     async def delete(self, public_url: str):
-        pass
+        if not public_url or not public_url.startswith(self.base_url):
+            return
+        rel_path = public_url[len(self.base_url):].lstrip("/")
+        full_path = os.path.join(self.base_dir, rel_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
 
     async def save(self, filepath: str, data: bytes) -> Tuple[str, bool, str]:
         full_path = os.path.join(self.base_dir, filepath)
@@ -42,11 +40,55 @@ class LocalStorage(StorageBackend):
             await f.write(data)
         return f"{self.base_url}/{filepath}", False, "NOT_APPLICABLE"
 
+
+class S3Storage(StorageBackend):
+    """
+    Amazon S3 Storage implementation for cloud-native asset storage.
+    """
+    def __init__(self, bucket_name: str = settings.AWS_S3_BUCKET, region: str = settings.AWS_REGION):
+        self.bucket_name = bucket_name
+        self.region = region
+        self._s3_client = boto3.client("s3", region_name=self.region)
+
+    async def delete(self, public_url: str):
+        if not public_url:
+            return
+        try:
+            key = public_url.split(".amazonaws.com/")[-1].lstrip("/")
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, lambda: self._s3_client.delete_object(Bucket=self.bucket_name, Key=key))
+        except Exception as e:
+            logger.error(f"Failed to delete S3 object {public_url}: {e}")
+
+    async def save(self, filepath: str, data: bytes) -> Tuple[str, bool, str]:
+        if not self.bucket_name:
+            raise ValueError("AWS_S3_BUCKET is not configured.")
+        
+        key = f"uploads/{filepath}"
+        loop = asyncio.get_event_loop()
+        
+        def _upload():
+            self._s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=key,
+                Body=data,
+                ContentType="image/webp"
+            )
+            if settings.AWS_CLOUDFRONT_DOMAIN:
+                return f"https://{settings.AWS_CLOUDFRONT_DOMAIN}/{key}"
+            return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{key}"
+        
+        public_url = await loop.run_in_executor(None, _upload)
+        return public_url, False, "APPROVED"
+
+
 class CloudinaryStorage(StorageBackend):
     """
     Cloudinary Storage implementation using the official cloudinary package.
     """
     def __init__(self):
+        import cloudinary
+        import cloudinary.uploader
         cloudinary.config(
             cloud_name=settings.CLOUDINARY_CLOUD_NAME,
             api_key=settings.CLOUDINARY_API_KEY,
@@ -55,60 +97,50 @@ class CloudinaryStorage(StorageBackend):
         )
 
     async def delete(self, public_url: str):
-        if not public_url: return
-        import asyncio
+        if not public_url:
+            return
+        import cloudinary.uploader
         loop = asyncio.get_event_loop()
         def _del():
             try:
-                # Extract public_id from URL
                 parts = public_url.split("/")
                 public_id = "/".join(parts[-3:]).split(".")[0]
                 cloudinary.uploader.destroy(public_id)
-            except Exception: pass
+            except Exception:
+                pass
         await loop.run_in_executor(None, _del)
-        
+
     async def save(self, filepath: str, data: bytes) -> Tuple[str, bool, str]:
         if not settings.CLOUDINARY_CLOUD_NAME or not settings.CLOUDINARY_API_KEY:
             raise ValueError("Cloudinary credentials not configured")
-            
-        import tempfile
-        import asyncio
-        
-        # We write to a temporary file since cloudinary python library 
-        # doesn't have an async byte upload out of the box that's non-blocking,
-        # but we can wrap the sync call in run_in_executor or just use standard sync for this demo,
-        # but wait, cloudinary uploader accepts a file-like object or bytes!
-        
+        import cloudinary.uploader
         loop = asyncio.get_event_loop()
         def _upload():
             try:
-                # Apply moderation (defaulting to aws_rek per standard Cloudinary setup)
                 response = cloudinary.uploader.upload(
                     data,
-                    public_id=filepath.split('.')[0], # Cloudinary doesn't need the extension
+                    public_id=filepath.split('.')[0],
                     resource_type="image",
                     moderation="aws_rek"
                 )
-                # Example response structure for aws_rek moderation:
-                # {"moderation": [{"status": "approved" | "rejected" | "pending", "kind": "aws_rek", ...}]}
                 is_flagged = False
                 moderation_status = "APPROVED"
-                
                 mod_data = response.get("moderation", [])
                 if mod_data and isinstance(mod_data, list):
                     status = mod_data[0].get("status", "").lower()
                     if status in ["rejected", "pending"]:
                         is_flagged = True
                         moderation_status = status.upper()
-
                 return response.get("secure_url"), is_flagged, moderation_status
             except Exception as e:
                 raise ValueError(f"Cloudinary upload failed: {str(e)}")
-            
-        secure_url, is_flagged, moderation_status = await loop.run_in_executor(None, _upload)
-        return secure_url, is_flagged, moderation_status
+        
+        return await loop.run_in_executor(None, _upload)
+
 
 def get_storage_backend() -> StorageBackend:
-    if getattr(settings, "USE_CLOUD_STORAGE", False):
+    if settings.AWS_S3_BUCKET:
+        return S3Storage()
+    if getattr(settings, "USE_CLOUD_STORAGE", False) and settings.CLOUDINARY_CLOUD_NAME:
         return CloudinaryStorage()
     return LocalStorage()

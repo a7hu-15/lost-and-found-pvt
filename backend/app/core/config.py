@@ -54,8 +54,15 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
     CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
 
+    # AWS Storage & AI Moderation Configuration
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    AWS_S3_BUCKET: str = os.getenv("AWS_S3_BUCKET", "")
+    AWS_CLOUDFRONT_DOMAIN: str = os.getenv("AWS_CLOUDFRONT_DOMAIN", "")
+    ENABLE_REKOGNITION_MODERATION: bool = os.getenv("ENABLE_REKOGNITION_MODERATION", "false").lower() == "true"
+    REKOGNITION_CONFIDENCE_THRESHOLD: float = float(os.getenv("REKOGNITION_CONFIDENCE_THRESHOLD", "70.0"))
+
     # Storage
-    USE_CLOUD_STORAGE: bool = os.getenv("USE_CLOUD_STORAGE", "True" if os.getenv("CLOUDINARY_CLOUD_NAME") else "False").lower() == "true"
+    USE_CLOUD_STORAGE: bool = os.getenv("USE_CLOUD_STORAGE", "True" if os.getenv("CLOUDINARY_CLOUD_NAME") or os.getenv("AWS_S3_BUCKET") else "False").lower() == "true"
     UPLOAD_DIR: str = "uploads"  # used when USE_CLOUD_STORAGE=False
     # SMTP Configuration
     SUPPORT_EMAIL: str = "cloudlostfound.platform@gmail.com"
