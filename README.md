@@ -1,75 +1,57 @@
-# ReFynd
+# ReFynd — Campus Item Recovery Platform
 
-**Live Platform:** [https://lost-and-found-sigma-three.vercel.app](https://lost-and-found-sigma-three.vercel.app)
+**Live Production Platform (AWS CloudFront HTTPS):** [https://d25eqjxhksqlbh.cloudfront.net](https://d25eqjxhksqlbh.cloudfront.net)
 
-**Admin Dashboard:** [https://lost-and-found-sigma-three.vercel.app/admin/login](https://lost-and-found-sigma-three.vercel.app/admin/login)
+**Admin & Moderation Panel:** [https://d25eqjxhksqlbh.cloudfront.net/admin/login](https://d25eqjxhksqlbh.cloudfront.net/admin/login)
 
-ReFynd is a secure, cloud-native item recovery platform built with FastAPI and React. It modernizes the traditional lost-and-found process by digitizing item reporting, enforcing privacy through token-based tracking, and providing a centralized moderation dashboard for security personnel.
+ReFynd is a secure, cloud-native item recovery platform built with FastAPI and React, fully deployed and orchestrated on **Amazon Web Services (AWS)** using Terraform Infrastructure as Code (IaC), Docker containerization, Amazon ECS Fargate (ARM64 Graviton), Amazon RDS PostgreSQL, Amazon CloudFront CDN, Amazon S3, and Amazon Rekognition AI moderation.
 
-## The Problem and Solution
+---
 
-Physical lost-and-found systems rely on noticeboards and unverified claims, leading to disorganization, privacy risks from publicly displayed phone numbers, and inefficiencies in returning items to their rightful owners. 
-
-This platform solves these issues by automating the digital recovery workflow. Users can log lost items or turn in found items through a streamlined web interface. Instead of requiring user accounts, the system generates unguessable Report IDs and secure access tokens sent directly via email. A deterministic matching engine actively compares lost and found reports, while an ownership proof workflow ensures that claimants can securely verify their identity before physical collection. Sensitive user contact details are strictly hidden from public listings.
-
-## Features
-
-- **Account-less Tracking:** Users interact with their reports via secure, 32-character access tokens delivered to verified email addresses.
-- **Privacy Enforcement:** Contact details are strictly obfuscated. Users communicate indirectly through the platform's claiming system.
-- **Automated Matching Engine:** A weighted deterministic engine compares category, location, brand, color, and text overlap to suggest potential matches between lost and found items.
-- **Image Processing Pipeline:** Uploaded images are strictly validated, resized, and stripped of EXIF metadata (including GPS coordinates) before being served securely.
-- **Security & Moderation:** Features Role-Based Access Control (RBAC) for administrators, rate limiting, XSS protection, and a manual review queue for flagged content and claims.
-
-## System Architecture
-
-The application follows a decoupled, serverless architecture optimized for scalability and zero-maintenance deployment.
+## Architecture & Technology Stack
 
 ```mermaid
 graph TD
-    A[User Browser] -->|HTTPS| B[Vercel React Frontend]
-    B -->|HTTPS API| C[FastAPI Serverless Backend]
-    C -->|SQLAlchemy| D[Managed PostgreSQL Database]
-    C -->|Storage API| E[Cloud Object Storage]
+    Client([User Browser]) -->|HTTPS :443| CF[Amazon CloudFront CDN]
+    CF -->|Static SPA Assets /*| S3[Amazon S3 Frontend Bucket]
+    CF -->|API Requests /api/*| ALB[Application Load Balancer]
+    ALB -->|HTTP :8000| ECS[Amazon ECS Fargate Backend Container]
+    ECS -->|SQLAlchemy Async| RDS[(Amazon RDS PostgreSQL 16)]
+    ECS -->|AI Moderation API| Rekognition[Amazon Rekognition]
+    ECS -->|Object Uploads / WebP| S3Uploads[Amazon S3 Uploads Bucket]
+    ECS -->|SMTP TLS :587| GoogleSMTP[Google SMTP Gateway]
+    ECS -->|Logs & Metrics| CloudWatch[Amazon CloudWatch]
 ```
 
-## Technical Stack
+- **Frontend:** React 18, TypeScript, Vite, TailwindCSS (Hosted via Amazon S3 + CloudFront CDN)
+- **Backend:** Python 3.11, FastAPI, SQLAlchemy 2.0 (Asyncpg), Pydantic v2 (Containerized on Amazon ECS Fargate ARM64 Graviton)
+- **Database:** Amazon RDS PostgreSQL 16 (`db.t4g.micro`, 20GB gp3, Multi-AZ subnets)
+- **Object Storage:** Amazon S3 (`refynd-frontend-prod-a91aeec0` and `refynd-uploads-prod-a91aeec0`)
+- **Content Delivery & HTTPS:** Amazon CloudFront Global CDN Distribution (`E2D6HFDGFXT0R5`) with automated SSL termination and HTTP-to-HTTPS redirect
+- **AI Content Moderation:** Native Amazon Rekognition (`DetectModerationLabels`) with fail-closed security and Pillow JPEG transcoding
+- **Observability:** Amazon CloudWatch centralized logging, 4 metric alarms (Backend CPU, Backend RAM, ALB 5xx errors, RDS CPU), and SNS alerting
+- **Infrastructure as Code (IaC):** 100% Terraform managed ([`infra/terraform/`](file:///Users/ashuchaudhary/Downloads/lost-and-found-main/infra/terraform/))
+- **Containerization:** Multi-stage production Dockerfiles with non-root user execution, custom entrypoint scripts, and Docker Compose local orchestration
 
-- **Frontend:** React, TypeScript, Vite, TailwindCSS
-- **Backend:** Python 3.9+, FastAPI, SQLAlchemy 2.0, Pydantic
-- **Database:** PostgreSQL
-- **Infrastructure:** Vercel (Frontend & Serverless Functions), Upstash (Redis Rate Limiting)
-- **Storage:** Cloudinary (Asset hosting and transformations)
-- **Email:** SMTP Integration
+---
 
-## How It Works
+## Containerization & Local Development
 
-1. **Reporting an Item:** A user submits a lost or found report via the public portal, including item details and optional images.
-2. **Verification:** The user verifies their submission via an automated email. The report is assigned a secure tracking token and placed into the moderation queue or published directly based on content filtering.
-3. **Matching & Claiming:** The automated matching engine analyzes new reports against existing database entries. If a user believes a found item is theirs, they submit a claim detailing specific ownership proofs (e.g., lock screen wallpaper, internal contents).
-4. **Moderation & Resolution:** Administrators review pending claims through the secure dashboard. Once a claim is approved, the claimant is instructed to collect the physical item from the central security office, and the digital record is archived.
+### Running via Docker Compose
+The entire full-stack application (PostgreSQL 16, FastAPI backend, and React/Nginx frontend) can be spun up locally with a single command:
 
-## Local Development Setup
-
-### Note on Image Uploads
-> [!NOTE]
-> ReFynd uses Cloudinary's AWS Rekognition add-on for automated image moderation, which is limited to 50 operations per month on the free tier. If you encounter an error when uploading an image (e.g., the platform is unable to proceed), it means the monthly quota has been reached. In this case, you can simply proceed with submitting your report without uploading an image.
-
-### Backend
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --port 8000 --reload
+docker compose up --build
 ```
-API Documentation will be available at `http://localhost:8000/docs`
+- Frontend: `http://localhost:5173`
+- Backend API & Swagger Docs: `http://localhost:8000/docs`
+- PostgreSQL: `localhost:5433`
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Web App will be available at `http://localhost:5173`
+---
+
+## Detailed DevOps & Cloud Deployment Documentation
+For detailed architectural blueprints, Terraform state diagrams, viva defense questions, and cost optimization calculations, refer to:
+- [`DEVOPS.md`](file:///Users/ashuchaudhary/Downloads/lost-and-found-main/DEVOPS.md)
+- [`AWS_DEPLOYMENT_REPORT.md`](file:///Users/ashuchaudhary/Downloads/lost-and-found-main/AWS_DEPLOYMENT_REPORT.md)
 
 

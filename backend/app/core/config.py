@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     MATCH_THRESHOLD: float = 80.0
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", f"https://{os.getenv('VERCEL_PROJECT_PRODUCTION_URL', os.getenv('VERCEL_URL'))}" if os.getenv("VERCEL_URL") or os.getenv("VERCEL_PROJECT_PRODUCTION_URL") else "http://localhost:5173")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://d25eqjxhksqlbh.cloudfront.net" if os.getenv("AWS_CLOUDFRONT_DOMAIN") else "http://localhost:5173")
     
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
