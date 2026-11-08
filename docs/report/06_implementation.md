@@ -502,3 +502,4 @@ def send_email(to_email: str, subject: str, html_content: str, text_content: str
 ```
 
 When a user submits a report, the tracking link (`https://d25eqjxhksqlbh.cloudfront.net/track?report_id={id}&token={token}`) is delivered directly to their inbox, ensuring they can access their private dashboard at any time.
+

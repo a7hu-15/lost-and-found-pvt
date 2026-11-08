@@ -133,3 +133,4 @@ The proposed ReFynd architecture delivers definitive technical and operational a
    Every status change, report creation, claim submission, and administrative resolution is permanently captured in an `audit_logs` relational table with client IP addresses, actor IDs, and UTC timestamps, providing complete institutional compliance.
 5. **High Availability and Resilience:**
    By deploying multi-container tasks across multiple AWS Availability Zones behind an Application Load Balancer with automated health checking, ReFynd guarantees uninterrupted service availability even during campus peak hours.
+

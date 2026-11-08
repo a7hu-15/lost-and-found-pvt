@@ -44,3 +44,4 @@ pandoc B_TECH_FINAL_PROJECT_REPORT.md -o ReFynd_BTech_Project_Report.docx
    - Line Spacing: 1.5
    - Margins: Left 1.5", Others 1"
    - Alignment: Justified
+

@@ -375,3 +375,4 @@ Application updates follow an automated, zero-downtime rolling update strategy:
 5. The Application Load Balancer issues HTTP health checks (`GET /health`) against the new task.
 6. Once the new container returns HTTP 200 OK across three consecutive checks, the ALB shifts incoming traffic to the new task and drains existing connections from the old container over a 30-second graceful window.
 7. The old task is decommissioned, achieving a seamless deployment with **zero dropped requests**.
+

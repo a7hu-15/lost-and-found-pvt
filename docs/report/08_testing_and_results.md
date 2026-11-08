@@ -215,3 +215,4 @@ End-to-end performance benchmarking was conducted using Apache Bench (`ab`) and 
 | **100 Users** | Report Creation (`/api/v1/lost/create`)| **78 ms** | **112 ms** | 128 req/sec | 0.00% |
 
 The benchmarks demonstrate that ReFynd delivers deterministic sub-100ms response times for typical campus workloads, easily handling peak traffic spikes during class dismissal hours.
+

@@ -528,3 +528,4 @@ Security is architected into ReFynd at every physical, network, and application 
 2. **Network Enclave:** Containers execute in private subnets. The PostgreSQL database is completely unreachable from the public internet, accepting connections only from the ECS task security group on port 5432.
 3. **Application Hardening:** SlowAPI limits request bursts by IP address. Pydantic sanitizes all input strings, completely immunizing the system against SQL injection (SQLAlchemy parameterized queries) and Cross-Site Scripting (XSS).
 4. **Data Isolation:** All personal contact details are stored in restricted relational tables; public queries select only non-PII fields.
+
