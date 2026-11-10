@@ -1,5 +1,14 @@
 # ReFynd: Campus Lost-and-Found Management Platform
 
+[![CI Pipeline](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/a7hu-15/lost-and-found-pvt/actions)
+[![AWS Infrastructure](https://img.shields.io/badge/AWS-Fargate%20%7C%20RDS%20%7C%20CloudFront-orange)](https://d25eqjxhksqlbh.cloudfront.net)
+[![Terraform](https://img.shields.io/badge/IaC-Terraform-blueviolet)](infra/terraform/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.109-009688)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TypeScript-61DAFB)](https://react.dev)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB)](https://python.org)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-336791)](https://www.postgresql.org)
+[![License](https://img.shields.io/badge/Academic-B.Tech%20Project-blue)](#license-and-academic-disclaimer)
+
 Live Production URL: https://d25eqjxhksqlbh.cloudfront.net
 
 ---
@@ -18,31 +27,54 @@ Live Production URL: https://d25eqjxhksqlbh.cloudfront.net
 
 ## Overview
 
-ReFynd is a privacy-preserving, cloud-native lost-and-found management platform architected specifically for university campuses and educational institutions. It replaces fragmented paper registers and unstructured social media messaging groups with an automated, auditable digital clearinghouse.
+ReFynd is a privacy-preserving, cloud-native lost-and-found management platform architected specifically for university campuses and educational institutions. It replaces fragmented paper registers, disorganized physical holding cabinets, and unregulated social media chat groups with an automated, auditable digital clearinghouse.
 
-The application couples a reactive Single-Page Application (SPA) frontend built with React 18, TypeScript, and Tailwind CSS with an asynchronous RESTful backend built with FastAPI and Python 3.11. The production system is containerized with Docker, automated with GitHub Actions CI/CD, and fully orchestrated on Amazon Web Services (AWS) using Terraform Infrastructure as Code (IaC).
+The platform couples a reactive Single-Page Application (SPA) frontend built with React 18, TypeScript, and Tailwind CSS with an asynchronous RESTful backend built with FastAPI and Python 3.11. The production environment is containerized with Docker, automated with GitHub Actions CI/CD, and fully orchestrated on Amazon Web Services (AWS) using Terraform Infrastructure as Code (IaC).
 
 ---
 
 ## Key Features
 
 1. Asymmetric Privacy Preservation
-   Reporter contact information (email addresses and phone numbers) is encrypted and isolated from public catalog views. Listings display only sanitized item descriptors and physical holding desk locations.
+   Reporter contact details (email addresses and phone numbers) are encrypted and isolated in private database tables. Public catalog cards display only sanitized item descriptors and physical holding desk locations, eliminating identity leakage and student doxxing.
 
 2. Frictionless Token-Based Tracking
-   Users can report lost or found items without mandatory upfront account registration. Upon submission, the platform generates a cryptographically unguessable tracking token and delivers a private management URL directly to the user's email inbox.
+   Users report lost or found items without mandatory upfront account creation. Upon submission, the platform generates a cryptographically unguessable tracking token and delivers a private management URL directly to the user's email inbox.
 
 3. Automated AI Image Moderation
-   Uploaded item photographs pass through a real-time, fail-closed safety pipeline powered by Amazon Rekognition (DetectModerationLabels). Any media flagged for explicit, suggestive, or inappropriate content with confidence greater than or equal to 70% is rejected immediately before permanent storage.
+   Uploaded photographs pass through a real-time, fail-closed safety pipeline powered by Amazon Rekognition (DetectModerationLabels). Any media flagged for explicit, suggestive, or inappropriate content with confidence greater than or equal to 70% is rejected immediately before permanent storage.
 
 4. Multi-Attribute Matching Algorithm
    An automated matching engine cross-evaluates incoming lost and found listings across standardized categories, normalized brand tokens, fuzzy string distances (Levenshtein ratios), physical holding desk locations, and temporal proximity windows.
 
 5. Support Ticketing and Real-Time Email Delivery
-   Integrated support ticketing captures user inquiries, logs tickets into the PostgreSQL database, and forwards full details to cloudlostfound.platform@gmail.com with automated receipts sent to users via Google SMTP over TLS.
+   Integrated support ticketing captures user inquiries, logs tickets into PostgreSQL, and forwards full details to cloudlostfound.platform@gmail.com with automated confirmation receipts sent to users via Google SMTP over TLS.
 
 6. Application-Level Rate Limiting
    Token-bucket rate limiting enforced via SlowAPI protects endpoints from credential stuffing and automated abuse (10 requests/min for login, 5 requests/min for report creation, 3 requests/min for sensitive actions, 100 requests/min default).
+
+---
+
+## User Workflows
+
+### Reporting a Lost Item
+1. The student navigates to the Report Lost page and fills out item details (title, category, date, last seen location, and optional private proof like a serial number).
+2. The user provides their contact email and submits the form.
+3. The backend generates a unique Report ID (for example, LF-SRM-26-AWX3VM) and an unguessable tracking token.
+4. An automated confirmation receipt containing the private tracking link is delivered to the student's email via Google SMTP.
+5. The matching engine evaluates the listing against existing found items and flags potential matches.
+
+### Reporting a Found Item
+1. A campus finder or staff member navigates to the Report Found page.
+2. The finder enters item attributes, specifies the physical campus holding desk (for example, Central Library Reception), and attaches an optional photograph.
+3. The image is evaluated in real time by Amazon Rekognition. If safe, it is transcoded to WebP and saved to Amazon S3.
+4. The item is published to the public search catalog with its holding desk location so the rightful owner can locate it.
+
+### Verifying and Claiming an Item
+1. The rightful owner searches the public catalog and locates their item.
+2. The student initiates a claim by providing corroborating private proof of ownership.
+3. A security attendant logs into the Admin Console, reviews the claimant's identity and proof against the private record, and approves the release.
+4. The item status transitions to CLAIMED and an immutable audit log entry is recorded.
 
 ---
 
@@ -116,6 +148,66 @@ graph TD
 
 ---
 
+## Core API Endpoints
+
+| Method | Endpoint | Access Control | Rate Limit | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| GET | `/health` | Public | None | Container health check probing database reachability |
+| GET | `/api/v1/search` | Public | 100/min | Debounced full-text search with category and location filters |
+| POST | `/api/v1/lost/create` | Public | 5/min | Registers a lost item and dispatches email tracking receipt |
+| POST | `/api/v1/found/create` | Public | 5/min | Ingests found report, moderates image via Rekognition, saves to S3 |
+| GET | `/api/v1/track/{report_id}` | Public (Token) | 100/min | Returns private status details when valid tracking token is supplied |
+| POST | `/api/v1/claims` | Public | 5/min | Submits ownership proof claiming an available found item |
+| POST | `/api/v1/support` | Public | 5/min | Logs support ticket and forwards email to platform administrator |
+| POST | `/api/v1/auth/login` | Public | 10/min | Authenticates staff and issues signed JWT Bearer Token |
+| GET | `/api/v1/admin/claims` | Staff / Admin | 100/min | Lists pending claims awaiting physical verification |
+| POST | `/api/v1/admin/claims/{id}` | Staff / Admin | 10/min | Approves or rejects a claim and updates item status |
+
+---
+
+## Cloud Architecture and Production Operations
+
+### CloudWatch Production Metric Alarms
+
+| Alarm Identifier | Metric Evaluated | Threshold Condition | Evaluation Period | Action Triggered |
+| :--- | :--- | :--- | :--- | :--- |
+| `refynd-prod-ecs-cpu-high` | Container CPU Utilization | CPU > 80% | 2 Consecutive 1-Min Periods | SNS Alert to Admin Email |
+| `refynd-prod-ecs-memory-high` | Container Memory Utilization | Memory > 80% | 2 Consecutive 1-Min Periods | SNS Alert to Admin Email |
+| `refynd-prod-alb-5xx-errors` | Load Balancer 5xx Server Errors | Sum > 5 Errors | 5-Minute Window | SNS Alert to Admin Email |
+| `refynd-prod-rds-cpu-high` | Database Host CPU Utilization | CPU > 80% | 2 Consecutive 5-Min Periods | SNS Alert to Admin Email |
+
+### Monthly Cloud Cost Optimization Breakdown
+
+| AWS Service | Architecture Strategy | Free Tier Coverage | Est. Monthly Cost |
+| :--- | :--- | :--- | :--- |
+| Amazon CloudFront | Global edge distribution | 1 TB transfer + 10M requests free/mo | $0.00 |
+| Amazon S3 | Static website and uploads | 5 GB standard storage free/mo | ~$0.10 |
+| Amazon ECS Fargate | ARM64 Graviton (0.25 vCPU, 0.5 GB RAM) | Pay per second; 20% cheaper than x86 | ~$8.50 |
+| Amazon RDS | Single-AZ db.t4g.micro, 20GB gp3 | 750 hours free/mo (first year) | $0.00 (Free Tier) |
+| Application Load Balancer | Shared ALB across public subnets | Single ALB handling traffic | ~$12.00 |
+| Amazon Rekognition | On-demand moderation with caching | 5,000 images free/mo (first year) | $0.00 |
+| Amazon CloudWatch | Centralized logging and alarms | Free tier logging + alarms | ~$0.40 |
+| **Total Estimated Cost** | | | **~$21.00 / month** |
+
+### Key Architectural Decisions
+
+1. Serverless Containers over Virtual Machines
+   Amazon ECS Fargate eliminates operating system patching, SSH key management, and idle capacity overhead. Compared to Amazon EKS (Kubernetes), Fargate eliminates the $73/month control plane fee while offering native CloudWatch logging and IAM security role binding.
+
+2. AWS Graviton (ARM64) Processors
+   Graviton processors deliver 20% lower cost per vCPU-hour and 40% better price-performance compared to fifth-generation x86 processors for containerized Python web workloads.
+
+3. Zero-Trust Relational Database Isolation
+   The PostgreSQL database resides strictly in private VPC subnets with no public IP address and no route to the Internet Gateway. The database security group rejects all external connections, permitting traffic solely from the backend ECS task security group on port 5432.
+
+4. Single-Page Application (SPA) Deep-Link Routing
+   When React Router routes like `/track` or `/report-lost` are requested directly, Amazon S3 returns a 404 since physical files do not exist at those paths. CloudFront custom error response rules intercept 403 and 404 responses and transparently serve `/index.html` with HTTP 200, enabling React Router to hydrate views without errors.
+
+5. Fail-Closed Computer Vision Moderation
+   Uploaded image bytes are evaluated in real time by Amazon Rekognition (DetectModerationLabels). If inappropriate content is detected above a 70% confidence threshold, the file is rejected immediately with an HTTP 400 error. If Rekognition is unreachable, the upload fails closed to protect platform integrity.
+
+---
+
 ## Local Development and Containerization
 
 ### Prerequisites
@@ -134,6 +226,26 @@ Access points:
 - Backend API and Swagger Documentation: http://localhost:8000/docs
 - Backend Health Probe: http://localhost:8000/health
 - PostgreSQL Port: localhost:5433
+
+### Manual Local Setup (Alternative)
+
+#### 1. Backend Setup
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp ../.env.production.example .env
+alembic upgrade head
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
@@ -178,27 +290,14 @@ terraform apply
 
 ---
 
-## Project Documentation
-
-Detailed academic, operational, and architectural documentation is available in the repository:
-
-- Formal B.Tech Final Project Report (95 Pages): `B_TECH_FINAL_PROJECT_REPORT.md`
-- Modular Report Chapters: `docs/report/`
-- Report Word and PDF Export Guide: `docs/EXPORT_GUIDE.md`
-- AWS Cloud Deployment and Architecture Report: `AWS_DEPLOYMENT_REPORT.md`
-- DevOps Operations and Architecture Guide: `DEVOPS.md`
-
----
-
 ## Directory Structure
 
 ```
 .
-├── B_TECH_FINAL_PROJECT_REPORT.md    # Formal 95-page engineering project thesis
-├── AWS_DEPLOYMENT_REPORT.md         # AWS Cloud deployment and cost report
-├── DEVOPS.md                        # DevOps and infrastructure guide
 ├── README.md                        # Project overview and quickstart
 ├── docker-compose.yml               # Local multi-service orchestration
+├── .env.production.example          # Environment variables template
+├── .gitignore                       # Git ignore rules
 ├── backend/
 │   ├── Dockerfile                   # Multi-stage ARM64 Graviton Python container
 │   ├── entrypoint.sh                # DB readiness check and migration runner
@@ -221,11 +320,8 @@ Detailed academic, operational, and architectural documentation is available in 
 │       ├── components/              # Reusable UI components
 │       ├── pages/                   # Application views (Search, Track, Report)
 │       └── services/                # Axios API client with interceptors
-├── infra/
-│   └── terraform/                   # Production AWS Infrastructure as Code
-└── docs/
-    ├── EXPORT_GUIDE.md              # Instructions for Word and PDF generation
-    └── report/                      # Modular chapters of the B.Tech thesis
+└── infra/
+    └── terraform/                   # Production AWS Infrastructure as Code
 ```
 
 ---
