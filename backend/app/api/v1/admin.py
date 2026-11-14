@@ -78,7 +78,7 @@ async def list_staff_members(
     db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(
-        select(User).where(User.role.in_([UserRole.ADMIN_OWNER, UserRole.ADMIN_STAFF, "ADMIN_OWNER", "ADMIN_STAFF", "SECURITY_STAFF", "ADMIN"]))
+        select(User).where(User.role.in_([UserRole.ADMIN_OWNER, UserRole.ADMIN_STAFF]))
         .order_by(User.created_at.desc())
     )
     return result.scalars().all()
